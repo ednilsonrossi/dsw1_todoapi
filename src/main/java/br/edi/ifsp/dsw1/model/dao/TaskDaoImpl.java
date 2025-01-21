@@ -12,8 +12,10 @@ class TaskDaoImpl implements TaskDao {
 
 	@Override
 	public boolean insert(Task task) {
-		var sql = "INSERT INTO " + TaskContract.TABLENAME_TASKS + " (" + TaskContract.COLUMN_TITLE + ", "
-				+ TaskContract.COLUMN_DONE + ") " + "VALUES (?, ?, ?)";
+		var sql = "INSERT INTO " + TaskContract.TABLENAME_TASKS + " (" 
+				+ TaskContract.COLUMN_TITLE + ", "
+				+ TaskContract.COLUMN_DONE + ") " 
+				+ "VALUES (?, ?)";
 
 		if (task != null) {
 			try (var conn = DatabaseConnection.getConnection();
@@ -22,8 +24,6 @@ class TaskDaoImpl implements TaskDao {
 				 * Objeto stm configurado para retornar a chave gerada pelo banco de dados
 				 * ao inserir um novo dado na tabela.
 				 */
-				
-				
 				stm.setString(1, task.getTitle());
 				stm.setBoolean(2, task.isDone());
 
