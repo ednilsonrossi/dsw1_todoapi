@@ -1,10 +1,289 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Lista TODO - DSW1</title>
+	<meta charset="UTF-8">
+	<title>Lista TODO - DSW1</title>
+	<link rel="stylesheet"
+		href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+		integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+		crossorigin="anonymous">
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+		integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+		crossorigin="anonymous"></script>
+	<script
+		src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+		integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+		crossorigin="anonymous"></script>
+	<script
+		src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
+		integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+		crossorigin="anonymous"></script>
 </head>
-<body>
+<body class="container mt-5">
+	<h1>Lista TODO - DSW1</h1>
+	<button class="btn btn-success mt-3 mb-4" data-toggle="modal" data-target="#createModal">+ Adicionar</button>
+	<div id="response"></div>
 
+	<table class="table" id="tasksTable">
+		<thead>
+			<tr>
+				<th scope="col">Tarefa</th>
+				<th scope="col">Ação</th>
+			</tr>
+		</thead>
+		<tbody>
+			
+		</tbody>
+	</table>
+
+	<!-- Modal: CreateTask -->
+	<div class="modal fade" id="createModal" tabindex="-1" role="dialog">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="exampleModalLabel">Adicionar Tarefa</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<form id="formCreateTask">
+					<div class="modal-body">
+						<div class="form-group">
+							<label for="textTitle">Tarefa</label> 
+							<input type="text" class="form-control" id="textTitle" name="textTitle" placeholder="Título da tarefa"> 
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+						<button type="submit" class="btn btn-success">Salvar</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+	
+	
+	<!-- Modal: EditTask -->
+	<div class="modal fade" id="editModal" tabindex="-1" role="dialog">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="exampleModalLabel">Editar Tarefa</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<form id="formEditTask">
+					<div class="modal-body">
+						<div class="form-group">
+							<label for="textEditTitle">Tarefa</label> 
+							<input type="text" class="form-control" id="textEditTitle" name="textEditTitle" placeholder="Título da tarefa"> 
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+						<button type="submit" class="btn btn-success">Atualizar</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<template id="task-row">
+		<tr>
+			<td class="task-title"></td>
+			<td class="task-actions">
+				<button class="toggle-btn btn btn-sm"></button>
+				<button class="edit-btn btn btn-secondary btn-sm">Editar</button>
+				<button class="delete-btn btn btn-danger btn-sm">Excluir</button>
+			</td>
+		</tr>
+	</template>
+
+	<script>
+		let tasks = [];
+	
+		// Intercepta a submissão do formulário e faz uma requisição fetch com os dados
+		document
+			.getElementById("formCreateTask")
+			.addEventListener("submit", function(event) {
+				event.preventDefault();
+				
+				// Obter os dados do formulário
+	            const title = document.getElementById("textTitle").value;
+				
+	         	const task = {
+	         			title: title
+	         	}
+	            
+	         	// Fazer a requisição usando fetch
+	         	fetch("/dsw1_todo/api", {
+	                method: "POST", // Método HTTP
+	                headers: {
+	                    "Content-Type": "application/json",
+	                },
+	                body: JSON.stringify(task) // Dados enviados no corpo
+           		})
+	         	.then( (response) => {
+	         		if (!response.ok) {
+	                    throw new Error("Erro ao salvar tarefa: " + response.statusText);
+	                }
+	                return response.json();
+	         	})
+	            .then( (data) => {
+	            	// console.log("Tarefa salva: " + data);
+	            	
+	            	// Adicionar a nova tarefa diretamente à tabela
+	                loadTasks();
+
+	                // Limpar o formulário e fechar o modal
+	                document.getElementById("textTitle").value = "";
+	                $("#createModal").modal("hide");
+	            })
+	            
+			});
+		
+		document
+			.getElementById("formEditTask")
+			.addEventListener("submit", function(event){
+				event.preventDefault();
+				
+				const taskId = this.dataset.taskId;
+				const updatedTitle = document.getElementById("textEditTitle").value;
+				
+				fetch(`/dsw1_todo/api/${taskId}`, {
+					method: "PATCH",
+					headers: {
+			            "Content-Type": "application/json",
+			        },
+			        body: JSON.stringify({ title: updatedTitle }),
+				})
+				.then((response) => {
+			        if (!response.ok) {
+			            throw new Error("Erro ao atualizar a tarefa: " + response.statusText);
+			        }
+			        return response.json();
+			    })
+			    .then(() => {
+			        $('#editModal').modal('hide'); // Fechar o modal
+			        loadTasks(); // Recarregar a tabela
+			    })
+			});
+	
+		function onToogle(task) {
+			task.done = !task.done
+			console.log("Editado antes do put: " + JSON.stringify(task, null, 2))
+			fetch("/dsw1_todo/api", {
+				method: "PUT",
+				body: JSON.stringify(task)
+			})
+			.then(response => {
+				if (!response.ok) {
+	            	throw new Error("Erro ao editar tarefa: " + response.statusText);
+	            }
+	            return response.json();
+			})
+			.then( data => {
+				// console.log("Tarefa editada: " + data);
+				loadTasks();
+			});
+		}
+		
+		function openUpdate(task) {
+			const titleInput = document.getElementById("textEditTitle");
+			titleInput.value = task.title;
+			
+			document.getElementById("formEditTask").dataset.taskId = task.id;
+			
+			$('#editModal').modal('show');
+		}
+		
+		function onDelete(taskId) {
+			fetch(`/dsw1_todo/api/${taskId}`, {
+				method: "DELETE",
+			})
+			.then( (response) => {
+				if (!response.ok) {
+	                throw new Error(`Erro ao excluir tarefa: ${response.statusText}`);
+	            }
+	            alert("Tarefa excluída com sucesso!");
+	            loadTasks();
+			});
+		}
+		
+		function addTaskRow(task) {
+			const rowTemplate = document.getElementById("task-row");
+			const tableBody = document.getElementById("tasksTable").getElementsByTagName("tbody")[0];
+			const row = rowTemplate.content.cloneNode(true);
+			
+			const taskNameCell = row.querySelector(".task-title");
+            taskNameCell.textContent = task.title;
+
+            // Configuração da cor da linha
+            const tableRow = row.querySelector("tr");
+            if (task.done) {
+            	tableRow.classList.add("table-secondary");
+            } else {
+            	tableRow.classList.remove("table-secondary");
+            }
+            
+         	// Ações de editar e excluir
+         	const doneButton = row.querySelector(".toggle-btn");
+            const editButton = row.querySelector(".edit-btn");
+            const deleteButton = row.querySelector(".delete-btn");
+            
+            doneButton.textContent = task.done ? "Desfazer" : "Concluir";
+            doneButton.classList.add(task.done ? "btn-info" : "btn-primary");
+            doneButton.classList.remove(task.done ? "btn-primary" : "btn-info");
+            doneButton.addEventListener("click", function() {
+                //alert("Concluir tarefa: " + task.title);
+                onToogle(task);
+            });
+
+            editButton.style.display = task.done ? "none" : "inline-block";
+            editButton.addEventListener("click", function() {
+                openUpdate(task);
+            });
+
+            deleteButton.addEventListener("click", function() {
+            	if (confirm(`Tem certeza de que deseja excluir a tarefa "${task.title}"?`)) {
+                    onDelete(task.id);
+                }
+            });
+            
+            tableBody.appendChild(row);
+		}
+		
+		
+		const loadTasks = () => {
+			fetch("/dsw1_todo/api")
+			.then(function(response){
+				if (!response.ok) {
+					throw new Error("Erro na API: " + response.statusText);
+				}
+				console.log("Response: " + response)
+				return response.json()
+			})
+			.then(function(data) {
+				tasks = data;
+				console.log("Json Recebido: " + JSON.stringify(data, null, 2));
+					
+				var done = tasks.filter(function (task) {
+					return task.done;
+				});
+				
+				var notDone = tasks.filter(task => !task.done);
+				
+				const tableBody = document.getElementById("tasksTable").getElementsByTagName("tbody")[0];
+				tableBody.innerHTML = "";
+				
+				notDone.forEach(addTaskRow);
+				done.forEach(addTaskRow);
+					
+			});
+		}
+		
+		document.addEventListener("DOMContentLoaded", loadTasks);
+	</script>
 </body>
 </html>
