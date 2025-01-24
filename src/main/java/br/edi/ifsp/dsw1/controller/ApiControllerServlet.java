@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.catalina.connector.Response;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import br.edi.ifsp.dsw1.model.dao.TaskDao;
